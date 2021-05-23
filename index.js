@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
+const fileUpload = require("express-fileupload");
 
 const blogPost = require("./models/blogpost");
 
@@ -18,10 +19,11 @@ app.use(
     extended: true,
   })
 );
+app.use(fileUpload());
 
 app.get("/", async (req, res) => {
   const blogposts = await blogPost.find({});
-  console.log(blogposts);
+  // console.log(blogposts);
   res.render("index", {
     blogposts,
   });
@@ -35,8 +37,10 @@ app.get("/contact", (req, res) => {
   res.render("contact");
 });
 
-app.get("/post", (req, res) => {
-  res.render("post");
+app.get("/post/:id", async (req, res) => {
+  const blogpost = await blogPost.findById(req.params.id);
+  console.log(blogpost);
+  res.render("post", { blogpost });
 });
 
 app.get("/posts/new", (req, res) => {
@@ -44,9 +48,12 @@ app.get("/posts/new", (req, res) => {
 });
 
 app.post("/posts/store", async (req, res) => {
-  console.log(req.body);
-  await blogPost.create(req.body);
-  res.redirect("/");
+  let image = req.files.image;
+  image.mv(path.resolve(__dirname, "public/img", image.name), async (error) => {
+    console.log(req.body);
+    await blogPost.create({ ...req.body, image: "/img/" + image.name });
+    res.redirect("/");
+  });
 });
 
 app.listen(port, () => {
